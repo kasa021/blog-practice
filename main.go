@@ -18,10 +18,13 @@ const (
 )
 
 var (
+	db *sqlx.DB
+
 	indexTemplate = template.Must(template.ParseFiles(layoutPath, templatePath+"/index.html"))
 )
 
 func main() {
+	db = dbConnect()
 	http.HandleFunc("/", indexHandler)
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
