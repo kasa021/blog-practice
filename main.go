@@ -35,6 +35,11 @@ var (
 func main() {
 	db = dbConnect()
 	defer db.Close()
+	err := initDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	http.HandleFunc("/", indexHandler)
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
