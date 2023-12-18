@@ -33,3 +33,12 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		"Text":      "Hello World",
 	})
 }
+
+func dbConnect() *sqlx.DB {
+    // SQLite3のデータベースに接続
+    db, err := sqlx.Open("sqlite3", dbPath)
+    if err != nil {
+        log.Fatal(err)
+    }
+    return db
+}
