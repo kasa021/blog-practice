@@ -5,13 +5,20 @@ import (
 	"log"
 	"net/http"
 	"text/template"
+
+	"github.com/jmoiron/sqlx"
+    _ "github.com/mattn/go-sqlite3"
 )
 
-const templatePath = "./templates"
-const layoutPath =  templatePath + "/layout.html"
+const (
+	templatePath = "./templates"
+	layoutPath   = templatePath + "/layout.html"
+
+	dbPath = "./db.sqlite3"
+)
 
 var (
-	indexTemplate = template.Must(template.ParseFiles(layoutPath, templatePath + "/index.html"))
+	indexTemplate = template.Must(template.ParseFiles(layoutPath, templatePath+"/index.html"))
 )
 
 func main() {
@@ -23,6 +30,6 @@ func main() {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	indexTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
 		"PageTitle": "Hello World",
-		"Text": "Hello World",
+		"Text":      "Hello World",
 	})
 }
