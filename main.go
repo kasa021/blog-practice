@@ -8,9 +8,10 @@ import (
 )
 
 const templatePath = "./templates"
+const layoutPath =  templatePath + "/layout.html"
 
 var (
-	indexTemplate = template.Must(template.ParseFiles(templatePath + "/index.html"))
+	indexTemplate = template.Must(template.ParseFiles(layoutPath, templatePath + "/index.html"))
 )
 
 func main() {
@@ -20,8 +21,8 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	indexTemplate.ExecuteTemplate(w, "index.html", map[string]interface{}{
-		"Title": "Hello World",
-		"Text":  "Hello World",
+	indexTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+		"PageTitle": "Hello World",
+		"Text": "Hello World",
 	})
 }
