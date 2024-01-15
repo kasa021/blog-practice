@@ -15,10 +15,10 @@ import (
 const (
 	templatePath = "./templates"
 	layoutPath   = templatePath + "/layout.html"
-	createPath  = templatePath + "/create.html"
+	createPath   = templatePath + "/create.html"
 
 	dbPath = "./db.sqlite3"
-	
+
 	// テーブル作成
 	createPostTableQuery = `CREATE TABLE IF NOT EXISTS posts (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,14 +29,24 @@ const (
 	)`
 
 	// ブログポストテーブルにデータを挿入するSQL文
-	insertPostQuery = `INSERT INTO posts (title, body, author, created_at) VALUES (?, ?, ?, ?)`
+	insertPostQuery     = `INSERT INTO posts (title, body, author, created_at) VALUES (?, ?, ?, ?)`
+	selectPostByIdQuery = `SELECT * FROM posts WHERE id = ?`
 )
+
+type Post struct {
+	Id        int64  `db:"id"`
+	Title     string `db:"title"`
+	Body      string `db:"body"`
+	Author    string `db:"author"`
+	CreatedAt int64  `db:"created_at"`
+}
 
 var (
 	db *sqlx.DB
 
-	indexTemplate = template.Must(template.ParseFiles(layoutPath, templatePath+"/index.html"))
+	indexTemplate  = template.Must(template.ParseFiles(layoutPath, templatePath+"/index.html"))
 	createTemplate = template.Must(template.ParseFiles(layoutPath, createPath))
+	postTemplate   = template.Must(template.ParseFiles(layoutPath, templatePath+"/post.html"))
 )
 
 func main() {
@@ -48,6 +58,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/post/", postHandler)
 	http.HandleFunc("/post/new", createPostHandler)
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -90,6 +101,27 @@ func createPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func postHandler(w http.ResponseWriter, r *http.Request) {
+	// URLからIDを取得
+	idStr := r.URL.Path[len("/post/"):]
+	// idをint型に変換
+	idInt, err := strconv.Atoi(idStr)
+	// ブログポストを取得
+	post, err := getPostbyId(idInt)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	// ブログポストを表示
+	postTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+		"Title":     post.Title,
+		"PageTitle": post.Title,
+		"Body":      post.Body,
+		"CreatedAt": time.Unix(post.CreatedAt, 0).Format("2006-01-02 15:04:05"),
+		"Author":    post.Author,
+	})
+}
+
 // ブログポストを作成
 func insertPost(title string, body string, author string, createdAt int64) (int64, error) {
 	// ブログポストテーブルにデータを挿入　last_insert_rowid()で最後に挿入したデータのIDを取得
@@ -106,6 +138,19 @@ func insertPost(title string, body string, author string, createdAt int64) (int6
 		return 0, err
 	}
 	return id, nil
+}
+
+// ブログポストをidから取得
+func getPostbyId(id int) (Post, error) {
+	var post Post
+	// idからブログポストを取得
+	err := db.Get(&post, selectPostByIdQuery, id)
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return post, err
+	}
+	return post, nil
 }
 
 func dbConnect() *sqlx.DB {
