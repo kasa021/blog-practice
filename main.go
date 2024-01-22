@@ -31,10 +31,12 @@ const (
 	// ブログポストテーブルにデータを挿入するSQL文
 	insertPostQuery     = `INSERT INTO posts (title, body, author, created_at) VALUES (?, ?, ?, ?)`
 	selectPostByIdQuery = `SELECT * FROM posts WHERE id = ?`
+	// ブログポストテーブルから全てのデータを取得するSQL文
+	selectAllPostsQuery = `SELECT * FROM posts`
 )
 
 type Post struct {
-	Id        int64  `db:"id"`
+	ID        int64  `db:"id"`
 	Title     string `db:"title"`
 	Body      string `db:"body"`
 	Author    string `db:"author"`
@@ -44,7 +46,13 @@ type Post struct {
 var (
 	db *sqlx.DB
 
-	indexTemplate  = template.Must(template.ParseFiles(layoutPath, templatePath+"/index.html"))
+	funcDate = template.FuncMap{
+		"date": func(t int64) string {
+			return time.Unix(t, 0).Format("2006-01-02 15:04:05")
+		},
+	}
+
+	indexTemplate  = template.Must(template.New("layout.html").Funcs(funcDate).ParseFiles(layoutPath, templatePath+"/index.html"))
 	createTemplate = template.Must(template.ParseFiles(layoutPath, createPath))
 	postTemplate   = template.Must(template.ParseFiles(layoutPath, templatePath+"/post.html"))
 )
@@ -65,9 +73,16 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	posts, err := getAllPosts()
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return
+	}
+	fmt.Printf("%+v\n", posts)
 	indexTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
-		"PageTitle": "Hello World",
-		"Text":      "Hello World",
+		"PageTitle": "記事一覧",
+		"Posts":     posts,
 	})
 }
 
@@ -138,6 +153,19 @@ func insertPost(title string, body string, author string, createdAt int64) (int6
 		return 0, err
 	}
 	return id, nil
+}
+
+// 全てのブログポストを取得
+func getAllPosts() ([]Post, error) {
+	// ブログポストを全て取得
+	var posts []Post
+	err := db.Select(&posts, selectAllPostsQuery)
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return posts, err
+	}
+	return posts, nil
 }
 
 // ブログポストをidから取得
