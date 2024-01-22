@@ -33,6 +33,8 @@ const (
 	selectPostByIdQuery = `SELECT * FROM posts WHERE id = ?`
 	// ブログポストテーブルから全てのデータを取得するSQL文
 	selectAllPostsQuery = `SELECT * FROM posts`
+	// ブログポストテーブルのデータを削除するSQL文
+	deletePostQuery = `DELETE FROM posts WHERE id = ?`
 )
 
 type Post struct {
@@ -67,6 +69,7 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/post/", postHandler)
+	http.HandleFunc("/post/delete/", deletePostHandler)
 	http.HandleFunc("/post/new", createPostHandler)
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -116,6 +119,22 @@ func createPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ブログポストを削除
+func deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	// URLからIDを取得
+	idStr := r.URL.Path[len("/post/delete/"):]
+	// idをint型に変換
+	idInt, err := strconv.Atoi(idStr)
+	// ブログポストを削除
+	err = deletePostByID(idInt)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	// トップページにリダイレクト
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
 func postHandler(w http.ResponseWriter, r *http.Request) {
 	// URLからIDを取得
 	idStr := r.URL.Path[len("/post/"):]
@@ -130,6 +149,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	// ブログポストを表示
 	postTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
 		"Title":     post.Title,
+		"ID":        post.ID,
 		"PageTitle": post.Title,
 		"Body":      post.Body,
 		"CreatedAt": time.Unix(post.CreatedAt, 0).Format("2006-01-02 15:04:05"),
@@ -193,6 +213,18 @@ func dbConnect() *sqlx.DB {
 func initDB() error {
 	// ブログポストテーブルを作成
 	_, err := db.Exec(createPostTableQuery)
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return err
+	}
+	return nil
+}
+
+
+//ブログポストを削除
+func deletePostByID(id int) error {
+	_, err := db.Exec(deletePostQuery, id)
 	if err != nil {
 		log.Print(err)
 		// InternalServerErrorを返す
