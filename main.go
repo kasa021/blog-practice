@@ -16,6 +16,7 @@ const (
 	templatePath = "./templates"
 	layoutPath   = templatePath + "/layout.html"
 	createPath   = templatePath + "/create.html"
+	editPath     = templatePath + "/edit.html"
 
 	dbPath = "./db.sqlite3"
 
@@ -35,6 +36,8 @@ const (
 	selectAllPostsQuery = `SELECT * FROM posts`
 	// ブログポストテーブルのデータを削除するSQL文
 	deletePostQuery = `DELETE FROM posts WHERE id = ?`
+	// ブログポストテーブルのデータを更新するSQL文
+	updatePostQuery = `UPDATE posts SET title = ?, body = ?, author = ?, created_at = ? WHERE id = ?`
 )
 
 type Post struct {
@@ -57,6 +60,7 @@ var (
 	indexTemplate  = template.Must(template.New("layout.html").Funcs(funcDate).ParseFiles(layoutPath, templatePath+"/index.html"))
 	createTemplate = template.Must(template.ParseFiles(layoutPath, createPath))
 	postTemplate   = template.Must(template.ParseFiles(layoutPath, templatePath+"/post.html"))
+	editTemplate   = template.Must(template.ParseFiles(layoutPath, editPath))
 )
 
 func main() {
@@ -70,6 +74,7 @@ func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/post/", postHandler)
 	http.HandleFunc("/post/delete/", deletePostHandler)
+	http.HandleFunc("/post/edit/", editPostHandler)
 	http.HandleFunc("/post/new", createPostHandler)
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -119,6 +124,55 @@ func createPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ブログポストを更新
+func editPostHandler(w http.ResponseWriter, r *http.Request) {
+	// URLのPathからIDを取得
+	id := r.URL.Path[len("/post/edit/"):]
+	//idをint型に変換
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return
+	}
+	if r.Method == "GET" {
+		// GETリクエストの場合はテンプレートを表示
+		post, err := getPostByID(idInt)
+		if err != nil {
+			log.Print(err)
+			// InternalServerErrorを返す
+			return
+		}
+		editTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+			"PageTitle": "ブログポスト編集",
+			"ID":        post.ID,
+			"Title":     post.Title,
+			"Body":      post.Body,
+			"Author":    post.Author,
+		})
+	} else if r.Method == "POST" {
+		// POSTリクエストの場合はブログポストを更新
+		title := r.FormValue("title")
+		body := r.FormValue("body")
+		author := r.FormValue("author")
+		createdAt := time.Now().Unix()
+		// フォームに空の項目がある場合はエラーを返す
+		if title == "" || body == "" || author == "" {
+			log.Print("フォームに空の項目があります")
+			editTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+				"Message": "フォームに空の項目があります",
+			})
+			return
+		}
+		err := updatePostByID(idInt, title, body, author, createdAt)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		http.Redirect(w, r, "/post/"+strconv.Itoa(idInt), http.StatusFound)
+	}
+}
+
 // ブログポストを削除
 func deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	// URLからIDを取得
@@ -141,7 +195,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	// idをint型に変換
 	idInt, err := strconv.Atoi(idStr)
 	// ブログポストを取得
-	post, err := getPostbyId(idInt)
+	post, err := getPostByID(idInt)
 	if err != nil {
 		log.Print(err)
 		return
@@ -189,7 +243,7 @@ func getAllPosts() ([]Post, error) {
 }
 
 // ブログポストをidから取得
-func getPostbyId(id int) (Post, error) {
+func getPostByID(id int) (Post, error) {
 	var post Post
 	// idからブログポストを取得
 	err := db.Get(&post, selectPostByIdQuery, id)
@@ -221,8 +275,7 @@ func initDB() error {
 	return nil
 }
 
-
-//ブログポストを削除
+// ブログポストを削除
 func deletePostByID(id int) error {
 	_, err := db.Exec(deletePostQuery, id)
 	if err != nil {
@@ -231,4 +284,16 @@ func deletePostByID(id int) error {
 		return err
 	}
 	return nil
+}
+
+// ブログポストを更新
+func updatePostByID(id int, title string, body string, author string, createdAt int64) error {
+    // ブログポストを更新
+    _, err := db.Exec(updatePostQuery, title, body, author, createdAt, id)
+    if err != nil {
+        log.Print(err)
+        // InternalServerErrorを返す
+        return err
+    }
+    return nil
 }
