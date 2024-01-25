@@ -1,0 +1,40 @@
+/* 全てのaタグに適用される基本スタイル */
+a {
+  text-decoration: none; /* 下線を消す */
+  color: #333; /* テキストの色 */
+}
+
+/* カードスタイルの適用 */
+a[href^="/post/"] {
+  display: inline-block;
+  background-color: #f9f9f9; /* 背景色 */
+  border-radius: 10px; /* 角の丸み */
+  padding: 10px 15px; /* 内側の余白 */
+  margin: 5px 0; /* 外側の余白 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* 影をつける */
+  transition: transform 0.3s ease, box-shadow 0.3s ease; /* アニメーション効果 */
+}
+
+/* hover時のアニメーション */
+a[href^="/post/"]:hover {
+  transform: translateY(-5px); /* 少し上に動かす */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* 影を強調 */
+}
+
+/* 「新規作成」リンクのスタイル */
+a[href="/post/new"] {
+  background-color: #4CAF50; /* 背景色 */
+  color: white; /* テキストの色 */
+  padding: 10px 15px; /* 内側の余白 */
+  border-radius: 5px; /* 角の丸み */
+  transition: background-color 0.5s; /* 背景色の変化にアニメーション */
+}
+
+/* 「新規作成」hover時のスタイル */
+a[href="/post/new"]:hover {
+  background-color: #45a049; /* 背景色を暗くする */
+}
+
+li {
+  list-style: none;
+}

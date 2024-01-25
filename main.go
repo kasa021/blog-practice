@@ -17,6 +17,7 @@ const (
 	layoutPath   = templatePath + "/layout.html"
 	createPath   = templatePath + "/create.html"
 	editPath     = templatePath + "/edit.html"
+	publicPath   = "./public"
 
 	dbPath = "./db.sqlite3"
 
@@ -76,6 +77,7 @@ func main() {
 	http.HandleFunc("/post/delete/", deletePostHandler)
 	http.HandleFunc("/post/edit/", editPostHandler)
 	http.HandleFunc("/post/new", createPostHandler)
+	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir(publicPath+"/css"))))
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
