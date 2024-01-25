@@ -1,10 +1,14 @@
 {{define "body"}}
+<link rel="stylesheet" href="/css/post.css">
 <a href="/">戻る</a>
 <a href="/post/delete/{{.ID}}">削除</a>
 <a href="/post/edit/{{.ID}}">編集</a>
-<h1>{{.Title}}</h1>
-<p></p>
-<p>{{.Body}}</p>
-<p>作成者: {{.Author}}</p>
-<p>作成日: {{.CreatedAt}}</p>
+<div class="content">
+    <h1>{{.Title}}</h1>
+    <p>{{.Body}}</p>
+</div>
+<div class="meta-info">
+    <p>作成者: {{.Author}}</p>
+    <p>作成日: {{.CreatedAt}}</p>
+</div>
 {{end}}

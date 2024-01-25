@@ -1,0 +1,39 @@
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #ffffff; /* 背景を白色に設定 */
+  margin: 0;
+  padding: 20px;
+  color: #333; /* テキストの色を濃いグレーに */
+}
+
+a {
+  color: #007bff;
+  text-decoration: none;
+  margin-right: 10px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1 {
+  margin-bottom: 0.5em;
+}
+
+p {
+  line-height: 1.6;
+}
+
+/* 投稿のメインコンテンツスタイル */
+.content {
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 投稿のメタ情報（作者、作成日など）のスタイル */
+.meta-info {
+  font-style: italic;
+  color: #888;
+  margin-top: 10px;
+}
