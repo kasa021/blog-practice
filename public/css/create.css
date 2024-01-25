@@ -1,0 +1,58 @@
+body {
+  font-family: Arial, sans-serif; /* フォントの設定 */
+  margin: 0;
+  padding: 20px;
+  background-color: #f4f4f4; /* 背景色 */
+}
+
+a {
+  color: #333;
+  text-decoration: none;
+}
+
+h2 {
+  color: #333;
+}
+
+form {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ラベルとフォーム要素を縦に並べる */
+form label, form input, form textarea, form button {
+  display: block; /* ブロックレベル要素として表示 */
+  width: 100%; /* 幅を100%に設定 */
+  margin-bottom: 10px; /* 下のマージン */
+}
+
+form label {
+  margin-bottom: 5px; /* ラベルの下のマージン */
+  font-weight: bold; /* ラベルのテキストを太字に */
+}
+
+form input[type="text"], form textarea {
+  padding: 8px; /* 内側の余白 */
+  border: 1px solid #ddd; /* 枠線の設定 */
+  border-radius: 4px; /* 角の丸み */
+}
+
+form textarea {
+  height: 100px; /* テキストエリアの高さ */
+  resize: vertical; /* 垂直方向のみリサイズ可能に */
+}
+
+form button {
+  background-color: #5cb85c; /* ボタンの背景色 */
+  color: white; /* ボタンのテキスト色 */
+  padding: 10px 15px; /* 内側の余白 */
+  border: none; /* 枠線を消す */
+  border-radius: 4px; /* 角の丸み */
+  cursor: pointer; /* カーソルをポインターに */
+}
+
+form button:hover {
+  background-color: #4cae4c; /* hover時の背景色 */
+}
