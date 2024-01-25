@@ -80,12 +80,14 @@ var (
 	}
 
 	// セッションストアの初期化
-	store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY"))) 
+	store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 
 	indexTemplate  = template.Must(template.New("layout.html").Funcs(funcDate).ParseFiles(layoutPath, templatePath+"/index.html"))
 	createTemplate = template.Must(template.ParseFiles(layoutPath, createPath))
 	postTemplate   = template.Must(template.ParseFiles(layoutPath, templatePath+"/post.html"))
 	editTemplate   = template.Must(template.ParseFiles(layoutPath, editPath))
+	loginTemplate  = template.Must(template.ParseFiles(layoutPath, templatePath+"/login.html"))
+	logoutTemplate = template.Must(template.ParseFiles(layoutPath, templatePath+"/logout.html"))
 )
 
 func main() {
@@ -102,6 +104,8 @@ func main() {
 	http.HandleFunc("/post/delete/", deletePostHandler)
 	http.HandleFunc("/post/edit/", editPostHandler)
 	http.HandleFunc("/post/new", createPostHandler)
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/logout", logoutHandler)
 	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir(publicPath+"/css"))))
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -330,16 +334,15 @@ func deletePostByID(id int) error {
 
 // ブログポストを更新
 func updatePostByID(id int, title string, body string, author string, createdAt int64) error {
-    // ブログポストを更新
-    _, err := db.Exec(updatePostQuery, title, body, author, createdAt, id)
-    if err != nil {
-        log.Print(err)
-        // InternalServerErrorを返す
-        return err
-    }
-    return nil
+	// ブログポストを更新
+	_, err := db.Exec(updatePostQuery, title, body, author, createdAt, id)
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return err
+	}
+	return nil
 }
-
 
 // ユーザー認証関数
 func authenticateUser(username string, password string) (bool, error) {
@@ -367,4 +370,54 @@ func checkPasswordHash(password string, hash string) bool {
 		return false
 	}
 	return true
+}
+
+// ログインページのハンドラ
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		// GETリクエストの場合はテンプレートを表示
+		loginTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+			"PageTitle": "ログイン",
+			"Message":   "",
+		})
+	case "POST":
+		// POSTリクエストの場合はログイン処理を実行
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		// ユーザー認証
+		authenticated, err := authenticateUser(username, password)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if authenticated {
+			session, _ := store.Get(r, "session") // セッションを取得
+			session.Values["authenticated"] = true
+			session.Save(r, w) // セッションを保存
+			// トップページにリダイレクト
+			http.Redirect(w, r, "/", http.StatusFound)
+		} else {
+			// 認証に失敗した場合はログインページにリダイレクト
+			http.Redirect(w, r, "/login", http.StatusFound)
+		}
+	}
+}
+
+// ログアウトページのハンドラ
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		// GETリクエストの場合はテンプレートを表示
+		logoutTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+			"PageTitle": "ログアウト",
+		})
+	case "POST":
+		// POSTリクエストの場合はログアウト処理を実行
+		session, _ := store.Get(r, "session") // セッションを取得
+		session.Values["authenticated"] = false
+		session.Save(r, w) // セッションを保存
+		// トップページにリダイレクト
+		http.Redirect(w, r, "/", http.StatusFound)
+	}
 }
