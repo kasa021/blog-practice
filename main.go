@@ -30,6 +30,13 @@ const (
 		author TEXT,
 		created_at INTEGER
 	)`
+	// ユーザーテーブル作成
+	createUserTableQuery = `CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL,
+		created_at INTEGER
+	)`
 
 	// ブログポストテーブルにデータを挿入するSQL文
 	insertPostQuery     = `INSERT INTO posts (title, body, author, created_at) VALUES (?, ?, ?, ?)`
@@ -49,6 +56,8 @@ type Post struct {
 	Author    string `db:"author"`
 	CreatedAt int64  `db:"created_at"`
 }
+
+
 
 var (
 	db *sqlx.DB
@@ -270,6 +279,13 @@ func dbConnect() *sqlx.DB {
 func initDB() error {
 	// ブログポストテーブルを作成
 	_, err := db.Exec(createPostTableQuery)
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return err
+	}
+	// ユーザーテーブルを作成
+	_, err = db.Exec(createUserTableQuery)
 	if err != nil {
 		log.Print(err)
 		// InternalServerErrorを返す
