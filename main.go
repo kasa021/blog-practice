@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"text/template"
 	"time"
 
+	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/gorilla/sessions"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -47,6 +50,9 @@ const (
 	deletePostQuery = `DELETE FROM posts WHERE id = ?`
 	// ブログポストテーブルのデータを更新するSQL文
 	updatePostQuery = `UPDATE posts SET title = ?, body = ?, author = ?, created_at = ? WHERE id = ?`
+
+	// ユーザーテーブルからユーザーを取得するSQL文
+	selectUserByUsernameQuery = `SELECT * FROM users WHERE username = ?`
 )
 
 type Post struct {
@@ -57,7 +63,12 @@ type Post struct {
 	CreatedAt int64  `db:"created_at"`
 }
 
-
+type User struct {
+	ID        int64  `db:"id"`
+	Username  string `db:"username"`
+	Password  string `db:"password"`
+	CreatedAt int64  `db:"created_at"`
+}
 
 var (
 	db *sqlx.DB
@@ -68,6 +79,9 @@ var (
 		},
 	}
 
+	// セッションストアの初期化
+	store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY"))) 
+
 	indexTemplate  = template.Must(template.New("layout.html").Funcs(funcDate).ParseFiles(layoutPath, templatePath+"/index.html"))
 	createTemplate = template.Must(template.ParseFiles(layoutPath, createPath))
 	postTemplate   = template.Must(template.ParseFiles(layoutPath, templatePath+"/post.html"))
@@ -75,6 +89,7 @@ var (
 )
 
 func main() {
+	loadEnv()
 	db = dbConnect()
 	defer db.Close()
 	err := initDB()
@@ -90,6 +105,14 @@ func main() {
 	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir(publicPath+"/css"))))
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+// .envファイルを読み込む
+func loadEnv() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -315,4 +338,33 @@ func updatePostByID(id int, title string, body string, author string, createdAt 
         return err
     }
     return nil
+}
+
+
+// ユーザー認証関数
+func authenticateUser(username string, password string) (bool, error) {
+	// ユーザーを取得
+	var user User
+	err := db.Get(&user, selectUserByUsernameQuery, username)
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return false, err
+	}
+	// パスワードを比較
+	// passwordはユーザーが入力したパスワード
+	// user.Passwordはデータベースに保存されているハッシュ化されたパスワード
+	match := checkPasswordHash(password, user.Password)
+	return match, nil
+}
+
+// パスワードハッシュのチェック
+func checkPasswordHash(password string, hash string) bool {
+	// パスワードが一致するかチェック
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err != nil {
+		log.Print(err)
+		return false
+	}
+	return true
 }
