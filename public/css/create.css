@@ -34,10 +34,13 @@ form label {
 }
 
 form input[type="text"], form textarea {
-  padding: 8px; /* 内側の余白 */
-  border: 1px solid #ddd; /* 枠線の設定 */
-  border-radius: 4px; /* 角の丸み */
+  padding: 8px;
+  margin: 0 0 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box; /* paddingとborderを含む幅にする */
 }
+
 
 form textarea {
   height: 100px; /* テキストエリアの高さ */
