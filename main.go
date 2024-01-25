@@ -53,6 +53,8 @@ const (
 
 	// ユーザーテーブルからユーザーを取得するSQL文
 	selectUserByUsernameQuery = `SELECT * FROM users WHERE username = ?`
+	// ユーザーテーブルにユーザーを挿入するSQL文
+	insertUserQuery = `INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)`
 )
 
 type Post struct {
@@ -88,6 +90,7 @@ var (
 	editTemplate   = template.Must(template.ParseFiles(layoutPath, editPath))
 	loginTemplate  = template.Must(template.ParseFiles(layoutPath, templatePath+"/login.html"))
 	logoutTemplate = template.Must(template.ParseFiles(layoutPath, templatePath+"/logout.html"))
+	signupTemplate = template.Must(template.ParseFiles(layoutPath, templatePath+"/signup.html"))
 )
 
 func main() {
@@ -106,6 +109,7 @@ func main() {
 	http.HandleFunc("/post/new", createPostHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/logout", logoutHandler)
+	http.HandleFunc("/signup", signupHandler)
 	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir(publicPath+"/css"))))
 	fmt.Println("Server is running on port http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -420,4 +424,79 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 		// トップページにリダイレクト
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
+}
+
+//　ユーザー新規登録のハンドラ
+func signupHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		// GETリクエストの場合はテンプレートを表示
+		signupTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+			"PageTitle": "ユーザー新規登録",
+			"Message":   "",
+		})
+	case "POST":
+		// POSTリクエストの場合はユーザーを作成
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		// フォームに空の項目がある場合はエラーを返す
+		if username == "" || password == "" {
+			loginTemplate.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+				"Message": "フォームに空の項目があります",
+			})
+			return
+		}
+		// パスワードをハッシュ化
+		hash, err := hashPassword(password)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		// ユーザーを作成
+		_, err = insertUser(username, hash)
+		if err != nil {
+			log.Print(err)
+			log.Print("ユーザーが存在します")
+			return
+		}
+		
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+}
+
+// パスワードをハッシュ化
+func hashPassword(password string) (string, error) {
+	// パスワードをハッシュ化
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Print(err)
+		return "", err
+	}
+	return string(hash), nil
+}
+
+// ユーザーをDBに挿入
+func insertUser(username string, password string) (int64, error) {
+	// すでにユーザーが存在するかチェック
+	var user User
+	err := db.Get(&user, selectUserByUsernameQuery, username)
+	if err == nil {
+		// ユーザーが存在する場合はエラーを返す
+		log.Print("ユーザーが存在します")
+		return 0, err
+	}
+	// ユーザーテーブルにデータを挿入
+	result, err := db.Exec(insertUserQuery, username, password, time.Now().Unix())
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return 0, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Print(err)
+		// InternalServerErrorを返す
+		return 0, err
+	}
+	return id, nil
 }
